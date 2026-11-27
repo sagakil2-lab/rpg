@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>캐릭터 머리·투구·무기 위치 조정기</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,'Malgun Gothic',sans-serif;background:#1e1813;color:#ece4d6;display:flex;height:100vh;overflow:hidden}
+#view{flex:1;position:relative;background:#3a3026}#cv{width:100%;height:100%;display:block;cursor:grab}
+#side{width:380px;overflow:auto;padding:12px;background:#2a2119;border-left:2px solid #5a4a36}
+h1{font-size:16px;margin:0 0 8px}h2{font-size:13px;margin:14px 0 6px;color:#ffd23f;border-top:1px solid #5a4a36;padding-top:10px}
+.row{display:flex;align-items:center;gap:6px;margin:4px 0;font-size:12px}.row label{width:84px;flex:none;color:#c8b898}.row input[type=range]{flex:1}
+.row input[type=number]{width:70px;background:#1e1813;color:#fff;border:1px solid #5a4a36;border-radius:5px;padding:3px}
+select,button{background:#3a2e22;color:#fff;border:1px solid #6a5a46;border-radius:6px;padding:5px 8px;font-size:12px}button{cursor:pointer}button:hover{background:#4a3a28}
+.b2{background:#2a6a3a}.tabs{display:flex;gap:4px;flex-wrap:wrap}
+textarea{width:100%;height:150px;background:#120e0a;color:#9fef9f;border:1px solid #5a4a36;border-radius:6px;font:11px monospace;padding:6px}
+.mut{color:#9a8a72;font-size:11px;line-height:1.5}#st{position:absolute;left:10px;top:10px;background:#000a;padding:6px 10px;border-radius:8px;font-size:12px}
+#zoombar{position:absolute;right:10px;top:10px;display:flex;gap:4px}
+</style></head><body>
+<div id="view"><canvas id="cv"></canvas><div id="st">게임 불러오는 중…</div>
+<div id="zoombar"><button onclick="Z.s*=1.2">＋</button><button onclick="Z.s/=1.2">－</button><button onclick="Z.s=0.72;Z.x=0;Z.y=0">맞춤</button></div></div>
+<div id="side">
+<h1>🎯 머리·투구·무기 위치 조정기</h1>
+<div class="mut">슬라이더나 숫자로 맞추세요. 키보드 ←↑→↓ = 위치 1씩(Shift 10씩), [ ] = 크기. 바뀐 값은 이 브라우저에 자동 저장돼요. 다 맞추면 아래 「코드 복사」 → <b>js/15_char_rig.js</b>에 붙여 넣기.</div>
+<h2>보기</h2>
+<div class="row"><label>동작</label><select id="an"><option value="idle">서 있기</option><option value="walk">걷기</option><option value="attack">공격</option><option value="cast">스킬</option><option value="dash">돌진</option></select>
+<label style="width:auto"><input type="checkbox" id="play" checked> 재생</label></div>
+<div class="row"><label>공격 진행</label><input type="range" id="pr" min="0" max="1" step="0.01" value="0.5"></div>
+<div class="row"><label>방향</label><select id="face"><option value="1">오른쪽</option><option value="-1">왼쪽</option></select>
+<label style="width:auto"><input type="checkbox" id="ghost"> 머리 없는 얼굴 보기</label></div>
+<div class="row"><label>갑옷</label><select id="armor"></select></div>
+<h2>💇 머리카락 <span class="mut">(RHAIR)</span></h2>
+<div class="row"><label>머리 종류</label><select id="hair"></select></div>
+<div id="hairCtl"></div>
+<h2>⛑️ 투구 <span class="mut">(HADJ)</span></h2>
+<div class="row"><label>투구</label><select id="helm"></select></div>
+<div id="helmCtl"></div>
+<h2>⚔️ 무기 <span class="mut">(WPN)</span></h2>
+<div class="row"><label>무기 그림</label><select id="wpn"></select></div>
+<div class="row"><label>적용 대상</label><select id="wscope"><option value="all">모든 무기 공통</option><option value="one">이 무기만 따로</option><option value="pose">지금 동작만 (모든 무기)</option><option value="onepose">이 무기 + 지금 동작만</option></select></div>
+<div class="row"><label>손 앞/뒤</label><select id="wback"><option value="1">손 뒤 (쥔 모습)</option><option value="0">손 앞</option></select></div>
+<div id="wpnCtl"></div>
+<h2>📋 코드</h2>
+<div class="tabs"><button class="b2" onclick="copyOut()">코드 복사</button><button onclick="resetAll()">처음 값으로</button><button onclick="dl()">파일로 저장</button></div>
+<textarea id="out" readonly></textarea>
+<div class="mut">붙이는 법: GitHub에서 <b>js/15_char_rig.js</b> 열기 → ✏️ → <code>const RHAIR=</code>, <code>const HADJ=</code>, <code>const WPN=</code> 줄을 복사한 내용으로 바꾸기 → Commit. 세 줄 모두 한 파일 안에 따로 있어요.</div>
+</div>
+<script>
+const $=s=>document.querySelector(s),cv=$('#cv'),ctx=cv.getContext('2d');let G=null,ORIG=null;const Z={s:0.72,x:0,y:0};
+const KEY='rig_editor_v1';
+function W(){return G;}
+function ev(x){return geval(x);}
+const T0=Date.now();const IMG={};const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),R=Math.random,rnd=(a,b)=>a+R()*(b-a),ri=(a,b)=>Math.floor(rnd(a,b+1)),pick=a=>a[Math.floor(R()*a.length)];const FC=new Map();
+function fimg(im,f){if(!im||!f||f==='none')return im;let m=FC.get(im);if(!m){m={};FC.set(im,m);}if(!m[f]){const c=document.createElement('canvas');c.width=im.width;c.height=im.height;const x=c.getContext('2d');x.filter=f;x.drawImage(im,0,0);m[f]=c;}return m[f];}
+const geval=x=>(0,eval)(x);
+function lsrc(u){return new Promise((ok,bad)=>{const s=document.createElement('script');s.src=u+'?t='+T0;s.onload=ok;s.onerror=()=>bad(new Error(u+' 파일을 찾지 못함'));document.body.appendChild(s);});}
+async function boot(){try{
+ $('#st').textContent='코드 불러오는 중…';
+ await lsrc('../assets/asset_list.js');await lsrc('../js/15_char_rig.js');
+ const AL=window.ASSET_LIST,keys=AL.img.filter(k=>/^(rig_|rhair_|rcap_|rhelm_|ra_|rboot_|rcape_|wpn_\d|var_)/.test(k)&&!/_sheet$/.test(k));let n=0;
+ await Promise.all(keys.map(k=>new Promise(r=>{const im=new Image();im.onload=()=>{IMG[k]=im;n++;$('#st').textContent=`캐릭터 그림 불러오는 중… ${n}/${keys.length}`;r();};im.onerror=r;im.src='../'+AL.base+k+'.'+AL.ext+'?v='+AL.v;})));
+ start(window);
+}catch(e){$('#st').textContent='오류: '+e.message+' — tools 폴더가 게임 폴더(index.html 옆) 안에 있어야 해요';}}
+function start(w){
+ G=w;
+ ORIG={RHAIR:JSON.parse(JSON.stringify(ev('RHAIR'))),HADJ:JSON.parse(JSON.stringify(ev('HADJ'))),WPN:JSON.parse(JSON.stringify(ev('WPN')))};
+ try{const sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv)apply(sv);}catch(e){}
+ const hs=['갈색 짧은','검은 뾰족'];$('#hair').innerHTML=hs.map((n,i)=>`<option value="${i}">${i}: ${n}</option>`).join('');
+ const hn=[0,1,2,3,4,5,6,7].map(i=>'투구 그림 '+i);$('#helm').innerHTML='<option value="">없음</option>'+hn.map((n,i)=>!!IMG['rhelm_'+i]?`<option value="${i}">${n}</option>`:'').join('');
+ const ws=Object.keys(IMG).filter(k=>/^(wpn_\d+|var_(?!bow))/.test(k)&&!/_sheet$/.test(k)).sort();$('#wpn').innerHTML=ws.map(k=>`<option>${k}</option>`).join('');
+ $('#armor').innerHTML='<option value="">기본 옷</option>'+Object.keys(ev('RAM')).map(k=>`<option>${k}</option>`).join('');
+ $('#wback').onchange=()=>{const P=ev('WPN'),k=$('#wpn').value,v=$('#wback').value==='1';if($('#wscope').value==='all')P.back=v;else{P.per[k]=P.per[k]||{};P.per[k].back=v;}save();};
+ $('#an').addEventListener('change',()=>{if(/pose/.test($('#wscope').value))build();});
+ ['hair','helm','wpn','wscope'].forEach(id=>$('#'+id).onchange=()=>{build();});build();$('#st').textContent='준비 완료 — 드래그로 화면 이동, 휠로 확대';requestAnimationFrame(loop);}
+function apply(sv){const R=ev('RHAIR'),H=ev('HADJ'),P=ev('WPN');sv.RHAIR.forEach((v,i)=>R[i]=v.slice());for(const k in H)delete H[k];Object.assign(H,JSON.parse(JSON.stringify(sv.HADJ)));Object.assign(P,JSON.parse(JSON.stringify(sv.WPN)));}
+function save(){localStorage.setItem(KEY,JSON.stringify({RHAIR:ev('RHAIR'),HADJ:ev('HADJ'),WPN:ev('WPN')}));out();}
+function slider(host,lab,get,set,min,max,step){const d=document.createElement('div');d.className='row';d.innerHTML=`<label>${lab}</label><input type="range" min="${min}" max="${max}" step="${step}"><input type="number" step="${step}">`;const [r,n]=d.querySelectorAll('input');
+ const sync=v=>{r.value=v;n.value=Math.round(v*1000)/1000;};sync(get());r.oninput=()=>{set(+r.value);n.value=r.value;save();};n.onchange=()=>{set(+n.value);r.value=n.value;save();};d._sync=()=>sync(get());host.appendChild(d);return d;}
+let CTL=[];
+function build(){CTL=[];const hi=+$('#hair').value,R=ev('RHAIR');const hc=$('#hairCtl');hc.innerHTML='';const r=R[hi];
+ // 크기는 중심 기준으로
+ const cx=()=>r[0]+r[2]/2,cy=()=>r[1]+r[3]/2,ar=r[3]/r[2];
+ CTL.push(slider(hc,'가로 위치',()=>Math.round(cx()),v=>{r[0]=v-r[2]/2;},-200,400,1),slider(hc,'세로 위치',()=>Math.round(cy()),v=>{r[1]=v-r[3]/2;},-200,400,1),
+  slider(hc,'크기(너비)',()=>Math.round(r[2]),v=>{const x=cx(),y=cy(),a=r[3]/r[2];r[2]=v;r[3]=v*a;r[0]=x-v/2;r[1]=y-r[3]/2;},200,900,1),
+  slider(hc,'세로 비율',()=>+(r[3]/r[2]).toFixed(3),v=>{const y=cy();r[3]=r[2]*v;r[1]=y-r[3]/2;},0.6,1.6,0.005));
+ CTL.hair={nudge:(dx,dy)=>{r[0]+=dx;r[1]+=dy;},size:k=>{const x=cx(),y=cy();r[2]*=k;r[3]*=k;r[0]=x-r[2]/2;r[1]=y-r[3]/2;}};
+ const hc2=$('#helmCtl');hc2.innerHTML='';const h=$('#helm').value;
+ if(h!==''){const H=ev('HADJ');if(!H[h])H[h]=[0,0,1];const q=H[h];CTL.push(slider(hc2,'가로 이동',()=>q[0],v=>q[0]=v,-200,200,1),slider(hc2,'세로 이동',()=>q[1],v=>q[1]=v,-200,200,1),slider(hc2,'크기',()=>q[2],v=>q[2]=v,0.6,1.6,0.005));}
+ else hc2.innerHTML='<div class="mut">투구를 고르면 조정 칸이 나와요.</div>';
+ const wc=$('#wpnCtl');wc.innerHTML='';const P=ev('WPN'),k=$('#wpn').value,sc=$('#wscope').value,an=$('#an').value;P.pose=P.pose||{};
+ const tgt=()=>{if(sc==='all')return P;if(sc==='one')return P.per[k]=P.per[k]||{};if(sc==='pose')return P.pose[an]=P.pose[an]||{};const pw=P.per[k]=P.per[k]||{};pw.pose=pw.pose||{};return pw.pose[an]=pw.pose[an]||{};};
+ const isP=sc==='pose'||sc==='onepose',ADD={rot:1,dx:1,dy:1};
+ const g=f=>()=>{const T=tgt();if(T[f]!=null)return T[f];if(isP&&ADD[f])return 0;return geval('wpnFor')(k,'__')[f];},s=f=>v=>{tgt()[f]=v;};
+ if(isP)wc.insertAdjacentHTML('beforeend',`<div class="mut">「${$('#an').selectedOptions[0].text}」 동작 보정 — 각도·가로·세로는 기본값에 더해져요. 동작을 바꾸면 그 동작 칸으로 바뀌어요.</div>`);
+ CTL.push(slider(wc,'길이',g('L'),s('L'),150,1200,1),slider(wc,'손잡이 위치',g('gx'),s('gx'),-0.2,0.8,0.005),slider(wc,'세로 중심',g('gy'),s('gy'),0,1,0.005),slider(wc,isP?'각도 더하기':'각도(도)',g('rot'),s('rot'),-180,180,1),slider(wc,isP?'가로 더하기':'손에서 가로',g('dx'),s('dx'),-200,200,1),slider(wc,isP?'세로 더하기':'손에서 세로',g('dy'),s('dy'),-200,200,1));
+ {const T=sc==='all'?P:tgt(),bk=T.back!=null?T.back:(P.per[k]&&P.per[k].back!=null?P.per[k].back:P.back);$('#wback').value=bk===false?'0':'1';}
+ if(sc!=='all'){const b=document.createElement('button');b.textContent='이 칸의 개별 값 지우기';b.onclick=()=>{if(sc==='one')delete P.per[k];else if(sc==='pose')delete P.pose[an];else if(P.per[k]&&P.per[k].pose)delete P.per[k].pose[an];save();build();};wc.appendChild(b);}
+ save();}
+function out(){const R=ev('RHAIR'),H=ev('HADJ'),P=ev('WPN');const rnd=a=>a.map(v=>Math.round(v*10)/10);
+ const per={};for(const k in P.per)if(Object.keys(P.per[k]).length)per[k]=P.per[k];const pose={};for(const a in P.pose||{})if(Object.keys(P.pose[a]).length)pose[a]=P.pose[a];
+ $('#out').value=`const RHAIR=${JSON.stringify(R.map(rnd))};\nconst HADJ=${JSON.stringify(H)};\nconst WPN=${JSON.stringify(Object.assign({},P,{per,pose}))};`;}
+function copyOut(){out();navigator.clipboard.writeText($('#out').value).then(()=>$('#st').textContent='코드를 복사했어요 — js/15_char_rig.js에 붙여 넣기',()=>{$('#out').select();document.execCommand('copy');});}
+function dl(){out();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([$('#out').value],{type:'text/plain'}));a.download='rig_values.txt';a.click();}
+function resetAll(){if(!confirm('처음 값으로 되돌릴까요?'))return;apply(JSON.parse(JSON.stringify(ORIG)));localStorage.removeItem(KEY);build();}
+function loop(t){requestAnimationFrame(loop);const W=cv.width=cv.clientWidth*devicePixelRatio,H=cv.height=cv.clientHeight*devicePixelRatio;ctx.fillStyle='#3a3026';ctx.fillRect(0,0,W,H);
+ const S=Math.min(W,H)/1.15*Z.s,cx=W/2+Z.x,by=H*0.92+Z.y;
+ ctx.strokeStyle='#ffffff18';ctx.lineWidth=1;for(let i=-20;i<=20;i++){ctx.beginPath();ctx.moveTo(cx+i*S/20,0);ctx.lineTo(cx+i*S/20,H);ctx.stroke();ctx.beginPath();ctx.moveTo(0,by-i*S/20);ctx.lineTo(W,by-i*S/20);ctx.stroke();}
+ const an=$('#an').value,pr=$('#play').checked?((t/900)%1):+$('#pr').value,hi=+$('#hair').value,h=$('#helm').value;
+ const o={body:null,an,pr:(an==='idle'||an==='walk')?null:pr,face:+$('#face').value,h:S,flash:false,helmI:h===''?null:+h,hair:$('#ghost').checked?null:hi,cape:1,bootI:1,armor:$('#armor').value||null,armorTint:null,hand:{img:$('#wpn').value}};
+ try{geval('drawRig')(ctx,cx,by,o,t/1000);}catch(e){$('#st').textContent='오류: '+e.message;}}
+cv.addEventListener('wheel',e=>{e.preventDefault();Z.s*=e.deltaY<0?1.1:1/1.1;},{passive:false});
+let dr=null;cv.addEventListener('pointerdown',e=>{dr={x:e.clientX,y:e.clientY,zx:Z.x,zy:Z.y};});addEventListener('pointerup',()=>dr=null);addEventListener('pointermove',e=>{if(!dr)return;Z.x=dr.zx+(e.clientX-dr.x)*devicePixelRatio;Z.y=dr.zy+(e.clientY-dr.y)*devicePixelRatio;});
+addEventListener('keydown',e=>{if(!G||e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;const k=e.shiftKey?10:1;const H=CTL.hair;if(!H)return;
+ if(e.key==='ArrowLeft')H.nudge(-k,0);else if(e.key==='ArrowRight')H.nudge(k,0);else if(e.key==='ArrowUp')H.nudge(0,-k);else if(e.key==='ArrowDown')H.nudge(0,k);else if(e.key===']')H.size(1.01);else if(e.key==='[')H.size(1/1.01);else return;
+ e.preventDefault();CTL.forEach(c=>c._sync&&c._sync());save();});
+setTimeout(boot,300);
+</script></body></html>
