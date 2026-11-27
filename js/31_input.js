@@ -11,6 +11,11 @@ if(touch){$('#pad').style.display='block';$('#acts').style.display='block';
  const pad=$('#pad'),knob=$('#knob');let jid=null,ox=0,oy=0;
  pad.addEventListener('touchstart',e=>{const t=e.changedTouches[0];jid=t.identifier;ox=LX(t);oy=LY(t);knob.style.display='block';knob.style.left=(ox-55)+'px';knob.style.top=(oy-55-(innerHeight-pad.offsetHeight))+'px';e.preventDefault();},{passive:false});
  pad.addEventListener('touchmove',e=>{for(const t of e.changedTouches){if(t.identifier!==jid)continue;let dx=LX(t)-ox,dy=LY(t)-oy;const d=Math.hypot(dx,dy),mx=45;if(d>mx){dx=dx/d*mx;dy=dy/d*mx;}input.jx=dx/mx;input.jy=dy/mx;knob.firstChild.style.transform=`translate(${dx}px,${dy}px)`;}e.preventDefault();},{passive:false});
- const end=e=>{for(const t of e.changedTouches)if(t.identifier===jid){jid=null;input.jx=input.jy=0;knob.style.display='none';knob.firstChild.style.transform='';}};pad.addEventListener('touchend',end);pad.addEventListener('touchcancel',end);
+ const jreset=()=>{jid=null;input.jx=input.jy=0;knob.style.display='none';knob.firstChild.style.transform='';};window.joyReset=()=>{jreset();input.atk=false;};
+ const end=e=>{for(const t of e.changedTouches)if(t.identifier===jid)jreset();};pad.addEventListener('touchend',end);pad.addEventListener('touchcancel',end);
+ // 놓친 touchend 보정: 화면 어디서든 손가락 목록에 조이스틱 손가락이 없으면 해제
+ const sweep=e=>{if(jid!==null&&![...e.touches].some(t=>t.identifier===jid))jreset();if(input.atk&&![...e.touches].some(t=>t.target&&t.target.closest&&t.target.closest('#bA')))input.atk=false;};
+ addEventListener('touchend',sweep,true);addEventListener('touchcancel',sweep,true);addEventListener('touchstart',e=>{if(jid!==null&&![...e.touches].some(t=>t.identifier===jid))jreset();},true);
+ addEventListener('blur',()=>window.joyReset());document.addEventListener('visibilitychange',()=>{if(document.hidden)window.joyReset();});addEventListener('orientationchange',()=>window.joyReset());
  const hold=(id,on,off)=>{const b=$(id);b.addEventListener('touchstart',e=>{e.preventDefault();on();},{passive:false});b.addEventListener('touchend',e=>{e.preventDefault();off&&off();},{passive:false});};
  hold('#bA',()=>input.atk=true,()=>input.atk=false);hold('#bP',()=>input.pot=true);hold('#bE',()=>input.act=true);}

@@ -36,7 +36,7 @@ function openPortal(){const ti=CUR.ti,L=GROUNDS.map((g,i)=>[g,i]).sort((a,b)=>aw
  <button class="btn w g" onclick="closeModal()">나가기</button>`,true);}
 function portalGo(gi,fare){if(P.gold<fare)return;P.gold-=fare;closeModal();const g=GROUNDS[gi];fade.dir=1;fade.cb=()=>{const m=getMap('G'+gi);enterMap('G'+gi,m.entries['T'+g.town]||m.entries[Object.keys(m.entries)[0]]);news(`🌀 게이트로 ${g.name}(Lv${g.lv}) 이동`,'me');};}
 function coach(to,h,fare){P.gold-=fare;closeModal();fade.dir=1;fade.cb=()=>{fastHours(h);enterMap('T'+to,getMap('T'+to).entries.coach);news(`🐎 역마차로 ${TOWNS[to].name} 도착 (${h}시간)`,'me');};}
-const BAGT={v:'m',sel:null};
+const BAGT={v:'m',sel:null},EQT={v:'e'};
 function bagInfo(key){BAGT.sel=key;const el=$('#binfo');if(!el)return;document.querySelectorAll('#bgr .bi').forEach(e=>e.classList.toggle('sel',e.dataset.k===key));const[t,v]=key.split(':');let h='';
  if(t==='m'){const m=MATS[+v],best=(()=>{let b=0,bt=0;for(let k=0;k<NT;k++){const p=sellP(k,m.id);if(p>b){b=p;bt=k;}}return[b,bt];})(),src=GROUNDS[m.g],uses=Object.values(CB).filter(c=>c.recIds&&c.recIds.some(([mid])=>mid===m.id)).slice(0,3);
   h=`<div class="skdh">${icv({t:'mat',id:m.id},48)}<div><b style="font-size:15px;color:${m.rare?'#c77dff':'#ffe2a8'}">${m.name}</b><div class="mut" style="font-size:11.5px">${CATN[m.cat]} · ${m.rare?'희귀 · ':''}보유 ${P.bag[m.id]}</div></div></div>
@@ -47,7 +47,7 @@ function bagInfo(key){BAGT.sel=key;const el=$('#binfo');if(!el)return;document.q
  else if(t==='g'){const[gi,mi]=v.split('_').map(Number);h=`<div class="skdh">${icv({t:'egg',gi,mi},44)}<div><b>${monOf(gi,mi)[0]}의 알</b><div class="mut">Lv${GROUNDS[gi].lv} · 보유 ${P.eggs[v]}</div></div></div><div class="nb"><button class="btn s" onclick="openDungeon()">던전에 배치</button></div>`;}
  else if(t==='c')h=`<div class="skdh">${icv({t:'core',gi:+v},44)}<div><b>${GROUNDS[+v].name} 코어</b><div class="mut">보유 ${P.cores[v]}</div></div></div><div class="nb"><button class="btn s" onclick="openDungeon()">던전 관리</button></div>`;
  el.innerHTML=h;paintIcons(el);}
-function openBag(){const t=BAGT.v,mine=Object.keys(P.bag).map(Number).sort((a,b)=>MATS[a].tier-MATS[b].tier||a-b);
+function openBag(){if(matchMedia('(pointer:coarse)').matches){EQT.v=BAGT.v==='o'?'o':BAGT.v==='e'?'e':'m';return openEquip();}const t=BAGT.v,mine=Object.keys(P.bag).map(Number).sort((a,b)=>MATS[a].tier-MATS[b].tier||a-b);
  const cell=(k,inner,badge,extra)=>`<div class="bi" data-k="${k}" ${extra||''} onclick="bagInfo('${k}')">${inner}${badge!=null?`<span class="e">${badge}</span>`:''}</div>`;
  let grid='';
  if(t==='m')grid=mine.map(id=>cell('m:'+id,icv({t:'mat',id},40),P.bag[id],`style="border-color:${MATS[id].rare?'#c77dff':'#4a3c2c'}"`)).join('');
@@ -61,7 +61,7 @@ function openBag(){const t=BAGT.v,mine=Object.keys(P.bag).map(Number).sort((a,b)
  <div style="display:flex;gap:6px;margin-top:8px"><button class="btn g" style="flex:1" onclick="openEquip()">🛡️ 장비 (G)</button><button class="btn g" style="flex:1" onclick="closeModal()">닫기</button></div>`,true);paintIcons($('#modal'));if(BAGT.sel&&document.querySelector(`#bgr .bi[data-k="${BAGT.sel}"]`))bagInfo(BAGT.sel);}
 function openNews(){openModal(`<h2>📜 세계 소식</h2><p class="d">NPC 50명이 사냥·운송·제작하며 움직이는 기록.</p>${G.news.slice(0,80).map(n=>`<div class="news ${n.kind}"><span class="h">${timeStr(n.h)}</span>${n.text}</div>`).join('')||'<p class="d">아직 소식이 없다.</p>'}<button class="btn w g" onclick="closeModal()">닫기</button>`);}
 function openMenu(){const L=[['🛡️','장비','openEquip()'],['📊','능력치'+(stpLeft()>0?` (${stpLeft()})`:''),'openStats()'],['📅','출석·미션'+(evtBadge()?` (${evtBadge()})`:''),'openEvents()'],['🎒','가방','openBag()'],['🌟','스킬'+(P.sp>0?` (${P.sp})`:''),'openSkills()'],['🐾','몬스터','openMons()'],['🏰','내 던전','openDungeon()'],['🗺️','월드맵','openWorld()'],['📖','퀘스트','openQuests()'],['📜','소식','openNews()'],['💎','다이아 상점',"openShop('charge')"],['⚙️','설정','openSettings()'],[SND.on?(SND.bgmOn?'🔊':'🔉'):'🔇','소리','toggleSound();openMenu()'],['❔','도움말','openHelp()']];
- openModal(`<h2>☰ 메뉴</h2><div class="mmenu">${L.map(([i,n,f])=>`<button onclick="${f}"><i>${i}</i>${n}</button>`).join('')}</div><button class="btn w g" style="margin-top:10px" onclick="closeModal()">닫기</button>`);paintIcons($('#modal'));}
+ openModal(`<h2>☰ 메뉴</h2><div class="mmenu">${L.map(([i,n,f])=>`<button onclick="${f}"><i>${i}</i>${n}</button>`).join('')}</div><button class="btn w g" style="margin-top:10px" onclick="closeModal()">닫기</button>`);paintIcons($('#modal'));notifTick();}
 function openHelp(){const K=(k,t)=>`<div class="hk"><kbd>${k}</kbd>${t}</div>`;openModal(`<h2>⚖️ 조작</h2>
  <div class="hkg">${K('WASD','이동')}${K('Space','공격')}${K('1~4','스킬')}${K('5~7','물약')}${K('R','귀환')}${K('E','대화·입장')}${K('B','가방')}${K('G','장비')}${K('T','스킬')}${K('M','월드맵')}${K('O','퀘스트')}${K('U','던전')}${K('Y','상점')}${K('N','소리')}</div>
  <p class="d" style="margin-top:8px">❗ 표시 NPC에게 말을 걸어 이야기를 시작하자.</p><button class="btn w" onclick="closeModal()">모험 시작</button>`);}

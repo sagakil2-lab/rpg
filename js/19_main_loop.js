@@ -119,8 +119,19 @@ function drawBubble(c,x,y,text){c.font='10px sans-serif';const words=[...text];c
  const w=Math.max(...lines.map(l=>c.measureText(l).width))+12,h=lines.length*13+8;c.fillStyle='rgba(255,250,235,.95)';rr(c,x-w/2,y-h,w,h,6);c.fill();c.beginPath();c.moveTo(x-4,y);c.lineTo(x,y+6);c.lineTo(x+4,y);c.fill();
  c.fillStyle='#2a1e12';c.textAlign='center';lines.forEach((l,i)=>c.fillText(l,x,y-h+15+i*13));}
 let updMiniBase=true;
-function drawMini(){const mc=$('#mini');if(!CUR||!CUR.mini)return;const c=mc.getContext('2d');const s=Math.min(120/CUR.mini.width,100/CUR.mini.height);mc.width=Math.round(CUR.mini.width*s);mc.height=Math.round(CUR.mini.height*s);
- c.imageSmoothingEnabled=false;c.drawImage(CUR.mini,0,0,mc.width,mc.height);const k=s*2/TS;
+const MINI={z:false};
+function drawMini(){const mc=$('#mini');if(!CUR||!CUR.mini)return;if(!mc._b){mc._b=1;mc.addEventListener('click',e=>{e.stopPropagation();MINI.z=!MINI.z;toast(MINI.z?'🔍 미니맵 확대 (내 주변)':'🗺️ 미니맵 전체 보기');});}
+ const c=mc.getContext('2d');let k,ox=0,oy=0;
+ if(MINI.z){mc.width=120;mc.height=100;const zs=4.6;k=zs/TS;ox=P.x*k-60;oy=P.y*k-50;c.fillStyle='#000';c.fillRect(0,0,120,100);c.imageSmoothingEnabled=false;c.drawImage(CUR.mini,ox/zs*2,oy/zs*2,120/zs*2,100/zs*2,0,0,120,100);}
+ else{const s=Math.min(120/CUR.mini.width,100/CUR.mini.height);mc.width=Math.round(CUR.mini.width*s);mc.height=Math.round(CUR.mini.height*s);c.imageSmoothingEnabled=false;c.drawImage(CUR.mini,0,0,mc.width,mc.height);k=s*2/TS;}
+ const dot=(x,y,col,r)=>{c.fillStyle=col;c.beginPath();c.arc(x*k-ox,y*k-oy,r,0,7);c.fill();};const R0=MINI.z?2.4:1.4;
+ for(const e of CUR.exits){c.fillStyle=e.gi!==undefined&&P.lv<GROUNDS[e.gi].lv?'#f44':'#4f4';c.fillRect(e.x*TS*k-ox-1,e.y*TS*k-oy-1,e.w*TS*k+2,e.h*TS*k+2);}
+ for(const p of ents.picks)dot(p.x,p.y,'#ffe14a',R0*0.6);
+ for(const a of ents.actors){if(a.remove)continue;const col=a.hostile||(a.npc&&a.npc.karma<=-40&&a.fighter)?'#ff2a6a':a.fighter?(a.npc&&a.npc.party?'#5aff7a':'#4ab8ff'):a.kind==='story'?'#ffd23f':'#d8d0c0';dot(a.x,a.y,col,a.fighter?R0*1.1:R0*0.9);}
+ for(const m of ents.pets||[])dot(m.x,m.y,'#b8ff9a',R0);
+ for(const m of ents.mons)if(!m.dead)dot(m.x,m.y,m.boss?'#ff3aff':m.elite?'#ff9a2a':'#ff4a3a',m.boss?R0*2:R0);
+ c.strokeStyle='#000';c.lineWidth=1.5;c.fillStyle='#fff';c.beginPath();c.arc(P.x*k-ox,P.y*k-oy,R0*1.6,0,7);c.fill();c.stroke();
+ if(MINI.z){c.strokeStyle='#ffd23f';c.lineWidth=2;c.strokeRect(1,1,118,98);}return;
  for(const e of CUR.exits){c.fillStyle=e.gi!==undefined&&P.lv<GROUNDS[e.gi].lv?'#f44':'#4f4';c.fillRect(e.x*s*2-1,e.y*s*2-1,e.w*s*2+2,e.h*s*2+2);}
  for(const m of ents.mons)if(!m.dead){c.fillStyle=m.boss?'#f0f':'#f55';c.fillRect(m.x*k-1,m.y*k-1,m.boss?4:2,m.boss?4:2);}
  for(const a of ents.actors){c.fillStyle=a.npc?ROLE[a.npc.role][2]:'#ccc';c.fillRect(a.x*k-1,a.y*k-1,2,2);}
@@ -136,7 +147,7 @@ function hud(){try{questPoll();}catch(e){}try{petBar();heroPortrait();}catch(e){
  $('#goal').textContent=nt?`🎯 다음 해금: Lv${nt[0]} ${nt[1]}`:'🎯 모든 지역 해금 완료';
  const pr=$('#prompt');let txt='';if(CUR&&!paused&&!P.dead){const b=nearBuilding();if(nearRift())txt='[E] 🌀 차원 균열 조사';else if(nearChest())txt='[E/Space] 🎁 보물상자 열기';else if(b)txt=b.type==='house'?'🚪 남의 집 (잠김)':`[E/Space] ${b.icon} ${b.label} 들어가기`;else{const a=nearActor();if(a)txt=`[E] 💬 ${a.name}와(과) 대화`;}}
  pr.style.display=txt?'block':'none';pr.textContent=txt;$('#bE').textContent=txt?(txt.includes('대화')?'대화':'입장'):'대화';$('#bA').textContent=CUR&&CUR.kind==='town'?'행동':'공격';
- {const mb=$('#bMenuB');if(mb){const nn=(P.sp>0?P.sp:0)+(stpLeft()>0?1:0)+(P._evb||0);const v=nn?String(nn):'';if(mb._v!==v){mb._v=v;mb.textContent=v;mb.style.display=v?'block':'none';}}}
+{const mb=$('#bMenuB');if(mb&&mb.style.display!=='none'){mb.style.display='none';}if(false&&mb){const nn=(P.sp>0?P.sp:0)+(stpLeft()>0?1:0)+(P._evb||0);const v=nn?String(nn):'';if(mb._v!==v){mb._v=v;mb.textContent=v;mb.style.display=v?'block':'none';}}}
  {const h=P.sp>0?`🌟<span class="bdg">${P.sp}</span>`:'🌟';const b=$('#bSk');if(b._h!==h){b.innerHTML=h;b._h=h;}b.style.background=P.sp>0?'#8a6a1a':'';}
  layoutHud();
  $('#sbar').innerHTML=P.slots.map((id,i)=>{if(!id)return`<div class="sl e" data-i="${i}"><span class="k">${i+1}</span></div>`;const s=SK[id],cd=Math.max(0,P.cd[id]||0);

@@ -44,7 +44,7 @@ function stashOf(){if(!P.stash)P.stash={bag:{},items:[],gold:0};return P.stash;}
 function stMat(id,n,dir){const S=stashOf();id=+id;if(dir>0){n=Math.min(n,P.bag[id]||0);if(n<=0)return;addBag(P.bag,id,-n);S.bag[id]=(S.bag[id]||0)+n;}else{n=Math.min(n,S.bag[id]||0,pFit(id));if(n<=0){toast('가방에 자리가 없다');return;}S.bag[id]-=n;if(!S.bag[id])delete S.bag[id];addBag(P.bag,id,n);}openStash();}
 function stItem(uid,dir){const S=stashOf();if(dir>0){const i=P.items.findIndex(x=>x.uid===uid);if(i<0)return;if(P.eq[P.items[i].k]===uid){toast('장착 중인 장비는 맡길 수 없다');return;}if(S.items.length>=120){toast('창고가 가득 찼다');return;}S.items.push(P.items.splice(i,1)[0]);}
  else{const i=S.items.findIndex(x=>x.uid===uid);if(i<0)return;P.items.push(S.items.splice(i,1)[0]);}openStash();}
-function stGold(v){instGold();const S=stashOf();if(v>0){v=Math.min(v,P.__g.own);P.__g.own-=v;S.gold+=v;}else{v=Math.min(-v,S.gold);S.gold-=v;P.__g.own+=v;}openStash();}
+function stGold(v){const S=stashOf();S.gold=S.gold||0;v=Math.floor(v);if(v>0){v=Math.min(v,P.gold);if(v<=0){toast('맡길 골드가 없다');return;}P.gold-=v;S.gold+=v;sfx('coin');toast(`💰 ${fmt(v)}G 맡겼다`);}else{v=Math.min(-v,S.gold);if(v<=0){toast('찾을 골드가 없다');return;}S.gold-=v;P.gold+=v;sfx('coin');toast(`💰 ${fmt(v)}G 찾았다`);}openStash();}
 function stAllMats(){const S=stashOf();for(const id in P.bag){S.bag[id]=(S.bag[id]||0)+P.bag[id];}P.bag={};openStash();}
 function openStash(){const S=stashOf(),t=STASH.tab;const mine=Object.keys(P.bag).map(Number),theirs=Object.keys(S.bag).map(Number);
  const mcell=(id,n,dir)=>`<div class="bi" title="${MATS[id].name}" onclick="stMat(${id},${dir>0?n:n},${dir})">${icv({t:'mat',id},40)}<span class="e">${n}</span></div>`;

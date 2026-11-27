@@ -45,7 +45,7 @@ function bgmWA(k){const c=actx();if(!c)return;if(BG.k===k)return;if(BG.src){try{
   const s=c.createBufferSource();s.buffer=d;s.loop=true;s.connect(BG.gain);s.start();BG.src=s;for(const x in BG.buf)if(x!==k)delete BG.buf[x];};
  if(BG.buf[k]){go(BG.buf[k]);return;}if(BG.loading[k])return;BG.loading[k]=1;
  if(!window.EMBED_A){fetch(ASSET_BASE()+'bgm_'+k+'.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{const fin=d=>{BG.loading[k]=0;BG.buf[k]=d;go(d);};c.decodeAudioData(b,fin,()=>{BG.loading[k]=0;});}).catch(()=>{BG.loading[k]=0;});return;}
- try{const u=EMBED_A['bgm_'+k],bin=atob(u.slice(u.indexOf(',')+1)),arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+ try{fetch(EMBED_A['bgm_'+k]).then(r=>r.arrayBuffer()).then(b=>{const fin=d=>{BG.loading[k]=0;BG.buf[k]=d;go(d);};c.decodeAudioData(b,fin,()=>{BG.loading[k]=0;});}).catch(()=>{BG.loading[k]=0;});return;const u=EMBED_A['bgm_'+k],bin=atob(u.slice(u.indexOf(',')+1)),arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
   const fin=d=>{BG.loading[k]=0;BG.buf[k]=d;go(d);},bad=()=>{BG.loading[k]=0;};const pr=c.decodeAudioData(arr.buffer,fin,bad);if(pr&&pr.catch)pr.catch(bad);}catch(e){BG.loading[k]=0;}}
 let SND_UL=0;function sndUnlock(){const c=actx();if(c&&c.state!=='running')c.resume().catch(()=>{});
  if(!SND_UL&&c){SND_UL=1;try{const b=c.createBuffer(1,1,22050),s=c.createBufferSource();s.buffer=b;s.connect(c.destination);s.start(0);}catch(e){}

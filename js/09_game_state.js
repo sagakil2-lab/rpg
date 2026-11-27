@@ -48,4 +48,4 @@ function enterMap(key,pos){P.trail=[];if(key!=='LEG'&&G.leg&&G.leg.in){legEnd(fa
  reconcile(true);
  const lbl=m.pd?`🏰 ${m.name} (Lv${dunLv()}) — 몬스터 ${ents.mons.length}마리`:m.kind==='town'?`${TOWNS[m.ti].icon} ${m.name}`:`${m.kind==='dungeon'?'🕳️':'🌿'} ${m.name} (Lv${GROUNDS[m.gi].lv}~)`;
  $('#hLoc').textContent=m.name;toast(lbl);updMiniBase=true;}
-function transition(key,fromKey){if(fade.dir)return;sfx('warp');fade.dir=1;fade.cb=()=>{const m=getMap(key);enterMap(key,m.entries[fromKey]||(fromKey==='HOME'?m.entries.PD:null)||m.entries.start||m.entries[Object.keys(m.entries)[0]]);};}
+function transition(key,fromKey){if(fade.dir)return;try{window.joyReset&&window.joyReset();}catch(e){}sfx('warp');fade.dir=1;fade.cb=()=>{const m=getMap(key);enterMap(key,m.entries[fromKey]||(fromKey==='HOME'?m.entries.PD:null)||m.entries.start||m.entries[Object.keys(m.entries)[0]]);};}

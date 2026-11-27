@@ -84,7 +84,8 @@ function updActor(a,dt){a.bubT-=dt;ambient(a,dt);a.flash=Math.max(0,(a.flash||0)
   if(!a.hostile&&wantsFight(a)&&Math.hypot(P.x-a.x,P.y-a.y)<190&&R()<dt*0.25*(a.npc.karma<=-40?-a.npc.karma/100:0.6)){a.hostile=true;a.bubble=a.npc.karma<=-40?pick(['네 장비, 내가 가져가지!','혼자 다니면 위험하다고~','지갑 두고 가라!']):'악당 놈, 각오해라!';a.bubT=3;}
   if(a.hostile&&hostileStep(a,dt))return;
   if((a.cls==='priest'||a.cls==='knight')&&supportStep(a,dt))return;a.shieldT=(a.shieldT||0)-dt;
-  if(!a.tgt||a.tgt.dead){a.tgt=null;const shr=!(CUR.raid||CUR.invaded||CUR.pd);let bd=CUR.raid?5000:shr?260:340;const now=performance.now();for(const m of ents.mons){if(m.dead||(a.bad===m&&now<a.badT))continue;if(shr&&!P.dead&&(Math.hypot(m.x-P.x,m.y-P.y)<220||m.target===P))continue;const d=Math.hypot(m.x-a.x,m.y-a.y)*(CUR.raid&&m.raidBoss?0.2:1)*(los(a.x,a.y,m.x,m.y)?1:1.7);if(d<bd){bd=d;a.tgt=m;}}}
+  if(!a.tgt||a.tgt.dead){a.tgt=null;const shr=!(CUR.raid||CUR.invaded||CUR.pd);let bd=CUR.raid?5000:shr?260:340;const now=performance.now();for(const m of ents.mons){if(m.dead||(a.bad===m&&now<a.badT))continue;if(shr&&!P.dead&&(Math.hypot(m.x-P.x,m.y-P.y)<220||m.target===P))continue;const d=Math.hypot(m.x-a.x,m.y-a.y)*(CUR.raid&&m.raidBoss?0.2:1)*(los(a.x,a.y,m.x,m.y)?1:1.7);if(d<bd){bd=d;a.tgt=m;}}
+   if(!a.tgt&&a.fighter&&CUR.kind!=='town'&&(a.seekT=(a.seekT||0)-dt)<=0){a.seekT=1.5;let bb=1e9;for(const m of ents.mons){if(m.dead||(a.bad===m&&now<a.badT)||m.pet)continue;if(shr&&!P.dead&&(Math.hypot(m.x-P.x,m.y-P.y)<220||m.target===P))continue;const d=Math.hypot(m.x-a.x,m.y-a.y);if(d<bb){bb=d;a.tgt=m;}}if(a.tgt){a.path=null;a.wait=0;}}}
   if(a.tgt){const m=a.tgt,d=Math.hypot(m.x-a.x,m.y-a.y);a.face=m.x<a.x?-1:1;
    a.skCd-=dt;a.healCd-=dt;a.lvl=a.npc?a.npc.lv:1;
    if(a.hp<a.maxhp*0.5&&a.healCd<=0&&a.lvl>=8){a.healCd=14;const h=Math.round(a.maxhp*0.3);a.hp=Math.min(a.maxhp,a.hp+h);fx('fx_heal',a.x,a.y-20,1,0.5);floatT(a.x,a.y-56,'+'+h,'#7dff9a',11);}
