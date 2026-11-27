@@ -7,7 +7,7 @@ const SFXK=['hit','crit','swing','hurt','pickup','coin','levelup','quest','quest
 const BGMK=['town','field','dungeon','raid','boss','title','story','home','arena','legend','gacha','night',...Array.from({length:10},(_,i)=>'town_t'+i)];
 try{const s=JSON.parse(localStorage.getItem('adv_snd')||'{}');if(s.on!=null)SND.on=s.on;if(s.bgmOn!=null)SND.bgmOn=s.bgmOn;}catch(e){}
 function actx(){if(!SND.ctx){try{SND.ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}return SND.ctx;}
-function loadSounds(){const src=k=>(window.EMBED_A&&EMBED_A[k])||('assets/'+k+'.mp3?v='+((window.ASSET_LIST||{}).v||''));
+function loadSounds(){if(/[?&]rigonly/.test(location.search))return;const src=k=>(window.EMBED_A&&EMBED_A[k])||('assets/'+k+'.mp3?v='+((window.ASSET_LIST||{}).v||''));
  const EA=window.EMBED_A,AL=window.ASSET_LIST,ok=k=>EA?!!EA[k]:AL?AL.snd.includes(k):true;
  SND.pend={};SFXK.forEach(k=>{if(!ok('sfx_'+k))return;let res;SND.pend[k]={p:new Promise(r=>res=r)};setTimeout(()=>{res();delete SND.pend[k];},15000);const done=()=>{res();delete SND.pend[k];};fetch(src('sfx_'+k)).then(r=>r.ok?r.arrayBuffer():null).then(b=>{if(!b){done();return;}const c=actx();if(c)c.decodeAudioData(b,d=>{SND.buf[k]=d;done();},done);else done();}).catch(done);});
  BGMK.forEach(k=>{if(EA||AL)return;const a=new Audio();a.loop=true;a.preload='auto';a.oncanplaythrough=()=>{SND['bgm_'+k]=a;};a.onerror=()=>{};a.src=src('bgm_'+k);});}

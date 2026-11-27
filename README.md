@@ -46,6 +46,9 @@ assets/anchors.js     캐릭터 몸 시트 기준점 (건드리지 않기)
 
 GitHub 웹에서 파일을 열고 ✏️(연필)을 눌러 바로 고친 뒤 「Commit changes」하면 1~3분 뒤 반영돼요.
 
+## 🎯 머리·투구·무기 위치 조정기
+`https://sagakil2-lab.github.io/RPG/tools/rig_editor.html` 로 열면 슬라이더로 머리카락·투구·무기 위치를 맞추고, 「코드 복사」한 3줄을 `js/15_char_rig.js`의 같은 줄에 바꿔 넣으면 돼요.
+
 ## 자주 하는 수정
 - **그림 바꾸기**: `assets/`의 같은 이름 webp 파일을 덮어쓰기 (png를 webp로 바꿔서). 새 그림이면 `asset_list.js`의 `img` 목록에도 이름 추가.
 - **소리 바꾸기**: `assets/sfx_이름.mp3` 덮어쓰기. 새 소리면 `asset_list.js`의 `snd` 목록과 `24_sound.js`의 `SFXK` 목록에 추가.

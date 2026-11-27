@@ -9,7 +9,7 @@ const rigReady=()=>RIG_ON&&RIGK.every(k=>IMG['rig_'+k]);
 const lerpK=(ks,p)=>{p=clamp(p,0,1);for(let i=1;i<ks.length;i++)if(p<=ks[i][0]){const a=ks[i-1],b=ks[i],u=(p-a[0])/(b[0]-a[0]||1),e=u*u*(3-2*u);return a.slice(1).map((v,j)=>v+(b[j+1]-v)*e);}return ks[ks.length-1].slice(1);};
 // 포즈: [몸통기울기, 앞팔, 뒷팔, 앞허벅지, 앞정강이(상대), 뒷허벅지, 뒷정강이(상대), 높이, 무기모드(0=들기 1=연장)]
 function rigPose(an,pr,t){const w=t*9;
- if(an==='walk'){const s=Math.sin(w),c=Math.cos(w);return[-0.06,-0.45*s+0.1,0.45*s+0.1,-0.55*s,0.15+0.55*Math.max(0,c),0.55*s,0.15+0.55*Math.max(0,-c),-Math.abs(s)*8,0];}
+ if(an==='walk'){const s=Math.sin(w),c=Math.cos(w);return[-0.06,-0.45*s+0.1,0.45*s+0.1,0.55*s,0.15+0.55*Math.max(0,-c),-0.55*s,0.15+0.55*Math.max(0,c),-Math.abs(s)*8,0];}
  if(an==='attack'){const[a,b,tl]=lerpK([[0,-0.3,0.3,0],[0.3,-3.0,0.5,0.12],[0.6,-0.55,0.1,-0.22],[1,-0.2,0.2,-0.05]],pr);return[tl,a,b,-0.35,0.3,0.35,0.25,4,1];}
  if(an==='dash')return[-0.35,-1.55,0.7,-1.0,0.9,0.75,0.2,18,1];
  if(an==='spin'){return[-0.1,-1.57,1.2,-0.2,0.2,0.2,0.2,0,1];}
@@ -19,11 +19,17 @@ function rigPose(an,pr,t){const w=t*9;
  const b=Math.sin(t*2.2);return[0.02*b,0.12+0.03*b,0.18-0.03*b,-0.08,0.12,0.1,0.1,b*1.5,0];}
 // 장비 부위 덮개: [로컬x, 로컬y, 폭, 높이] (부위 이미지 좌상단 기준)
 const RAM={"dragon": {"torso": [-66.6, -17.5, 314, 272], "hips": [-34.9, 4.5, 262, 215], "arm": [-22.0, -33.6, 134, 317], "thigh": [0.0, 1.3, 126, 184]}, "leather": {"torso": [-49.8, -7.1, 288, 262], "hips": [-25.2, 3.9, 254, 176], "arm": [-8.4, -14.2, 122, 298], "thigh": [0.0, 3.2, 126, 184]}, "plate": {"torso": [-44.6, 4.5, 290, 250], "hips": [-22.0, 3.9, 250, 189], "arm": [-13.6, -16.8, 129, 301], "thigh": [3.2, -14.9, 123, 202]}, "robe": {"torso": [-7.8, -18.7, 226, 272], "hips": [-34.3, -69.2, 272, 302], "arm": [-32.3, 4.5, 144, 280]}, "scale": {"torso": [-52.4, 4.5, 297, 250], "hips": [-25.2, 3.9, 264, 209], "arm": [-3.2, -15.5, 116, 299], "thigh": [2.6, 1.3, 124, 185]}};
-const RHAIR=[[-32.3, -86.8, 472, 446], [-41.7, -106.5, 481, 470], [-92.1, -79.9, 485, 563], [-128.0, -80.7, 492, 454], [-52.7, -73.6, 464, 443], [-86.9, -77.3, 460, 447]];
+const RHAIR=[[-21.0, -58.6, 460, 453.1], [-30.5, -77.5, 469, 477], [-92.1, -79.9, 485, 563], [-128.0, -80.7, 492, 454], [-52.7, -73.6, 464, 443], [-86.9, -77.3, 460, 447]];
 const RHELM=[[-64.7, -137.1, 452, 593], [-80.4, -145.6, 476, 523], [-181.7, -238.4, 616, 650], [-100.9, -172.1, 527, 550], [-209.4, -316.7, 738, 694], [-172.0, -173.3, 539, 658], [-139.5, -243.2, 534, 621], [-144.3, -321.6, 577, 699]];
 const HAIR_N=['갈색 덥수룩','검정 뾰족','금발 긴머리','빨강 포니테일','곱슬','은발 올림'],CAPE_N=['없음','붉은 망토','푸른 망토','검은 누더기','왕실 망토'];
 const ARSET=[null,'leather','scale','scale','plate','dragon'],ARTINT=[null,null,null,'sepia(.35) hue-rotate(35deg) saturate(.8)',null,null];
-const RIG_WX=1.15,RIG_WPN=1.45,HAIRCLIP={0:0.38,1:0.32,3:0.36},HADJ={0:[-6,-4,1.08],1:[-20,-4,1.08],2:[-12,0,1.04],3:[-20,-4,1.08],4:[-20,-4,1.06],7:[-40,0,1.06]};const HELMT=[null,0,1,3,2,7],HELMV={circlet:6,hood:5,wizhat:4},HAIRUNDER={0:1,1:1,2:1,3:1,4:1,6:1,7:1};
+// 무기 위치: back=true면 손 뒤에 그려 실제로 쥔 것처럼, L=길이, gx=손잡이 가로 위치(0~1), gy=세로 중심(0~1), rot=추가 각도(도), dx/dy=손에서 이동. per에 무기별로 덮어쓰기
+function wpnFor(img,an){const pw=WPN.per[img]||{},W0=Object.assign({},WPN,pw);delete W0.per;delete W0.pose;for(const src of [WPN.pose&&WPN.pose[an],pw.pose&&pw.pose[an]]){if(!src)continue;for(const f in src){if(f==='rot'||f==='dx'||f==='dy')W0[f]=(W0[f]||0)+src[f];else W0[f]=src[f];}}return W0;}
+// pose: 동작별 보정 {idle,walk,attack,cast,dash,spin} — rot·dx·dy는 더해지고 나머지는 바뀜. 무기별 per[무기].pose도 가능
+const WPN={pose:{},L:580,gx:0.14,gy:0.5,rot:0,dx:0,dy:-6,back:true,per:{var_spear:{L:665,gx:0.295,gy:0.68,rot:0},wpn_1:{L:665,gx:0.185,gy:0.495,rot:0},var_staff:{L:699,gx:0.245,gy:0.725,rot:0},var_scythe:{L:699,gx:0.25,gy:0.695,rot:0},var_scepter:{L:699,gx:0.25,gy:0.575,rot:0},var_rapier:{L:699,gx:0.12,gy:0.51,rot:0},var_mace:{L:699,gx:0.175,gy:0.445,rot:0},var_hammer:{L:699,gx:0.175,gy:0.575,rot:0},var_greatsword:{L:699,gx:0.145,gy:0.515,rot:0},var_dagger:{L:239,gx:0.135,gy:0.145,rot:27},var_cursed:{L:239,gx:0.095,gy:0.34,rot:-62,back:false}}};
+const RIG_WX=1.15,RIG_WPN=1.45,HAIRCLIP={0:0.38,1:0.32,3:0.36};
+const HADJ={0:[40,0,0.885],1:[59,49,1.005],2:[27,14,0.96],3:[35,33,1.04],4:[51,80,1.06],5:[80,48,0.83],6:[67,-7,0.855],7:[22,190,1.155]};
+const HELMT=[null,0,1,3,2,7],HELMV={circlet:6,hood:5,wizhat:4},HAIRUNDER={0:1,1:1,2:1,3:1,4:1,6:1,7:1};
 const RIG_TOT=1060;// 발끝~머리끝 높이(부위 픽셀)
 function drawRig(c,x,y,o,t){const LS=0.82,S=o.h/RIG_TOT*1.06,P0=rigPose(o.an,o.pr==null?0:o.pr,t);const[tor,aF,aB,thF,shF,thB,shB,bob,wm]=P0;
  const A=RIGA,T=A.torso,Hp=A.hips,legLen=((A.thigh.ky-A.thigh.ay)+(A.shin.fy-A.shin.ay))*LS;
@@ -57,11 +63,13 @@ function drawRig(c,x,y,o,t){const LS=0.82,S=o.h/RIG_TOT*1.06,P0=rigPose(o.an,o.p
    if(hm){const m=RHELM[hi],q=HADJ[hi]||[0,0,1],w=m[2]*q[2],h=m[3]*q[2];c.drawImage(fimg(IMG['rhelm_'+hi],F),hx+m[0]+q[0]-(w-m[2])/2,hy+m[1]+q[1]-(h-m[3])*0.7,w,h);}
   c.restore();
   // 앞팔 + 무기
-  c.save();c.translate(T.sx-T.ax,T.sy-T.ay);c.rotate(aF);part('arm',A.arm.ax,A.arm.ay);
-   if(o.hand){const im=IMG[o.hand.img];c.translate(A.arm.hx-A.arm.ax,A.arm.hy-A.arm.ay-6);
+  c.save();c.translate(T.sx-T.ax,T.sy-T.ay);c.rotate(aF);
+   const W0=o.hand?wpnFor(o.hand.img,o.an):null,back=o.hand&&!o.hand.bow&&W0.back!==false;
+   const wdraw=()=>{if(!o.hand)return;const im=IMG[o.hand.img];c.save();c.translate(A.arm.hx-A.arm.ax+W0.dx,A.arm.hy-A.arm.ay+W0.dy);
     if(o.hand.bow){c.rotate(-aF-0.1);drawBow(c,o.hand,wm);}
-    else{c.rotate(wm?Math.PI/2-0.25:-0.65-aF*0.3);
-    if(im){const L=400*RIG_WPN,hh=L*im.height/im.width;if(o.hand.glow&&!o.flash){c.shadowColor=o.hand.glow;c.shadowBlur=30;}c.drawImage(im,-L*0.14,-hh/2,L,hh);c.shadowBlur=0;}}}
+    else{c.rotate((wm?Math.PI/2-0.25:-0.65-aF*0.3)+W0.rot*Math.PI/180);
+    if(im){const L=W0.L,hh=L*im.height/im.width;if(o.hand.glow&&!o.flash){c.shadowColor=o.hand.glow;c.shadowBlur=30;}c.drawImage(fimg(im,F),-L*W0.gx,-hh*W0.gy,L,hh);c.shadowBlur=0;}}c.restore();};
+   if(back)wdraw();part('arm',A.arm.ax,A.arm.ay);if(!back)wdraw();
   c.restore();
  c.restore();
  c.filter='none';c.restore();return true;}
@@ -71,7 +79,7 @@ function useRecall(){if(P.dead||P.recall)return;if(!P.scroll){toast('귀환 주�
  const to=CUR.raid&&G.rift?G.rift.town:CUR.pd?0:GROUNDS[CUR.gi]?GROUNDS[CUR.gi].town:0;P.recall={t:1.6,max:1.6,to};toast('귀환 주문 시전… (움직이면 취소)');}
 function buyScroll(n){const c=scrollCost()*n;if(P.gold<c)return;P.gold-=c;P.scroll=(P.scroll||0)+n;toast(`귀환 주문서 +${n}`);openBuilding(curBld);}
 const scrollCost=()=>40+P.lv*3;
-function cycleHair(){P.hair=((P.hair??0)+1)%6;toast('머리: '+HAIR_N[P.hair]);}
+function cycleHair(){P.hair=((P.hair??0)+1)%2;toast('머리: '+HAIR_N[P.hair]);}
 function cycleCape(){P.cape=((P.cape??1)+1)%5;toast('망토: '+CAPE_N[P.cape]);}
 function toggleRig(){RIG_ON=!RIG_ON;toast(RIG_ON?'부위 조립 캐릭터':'기존 시트 캐릭터');}
 
@@ -111,7 +119,7 @@ const PANG={idle:[-0.5,-0.5,-0.5,-0.5,-0.5,-0.5],walk:[-0.45,-0.45,-0.45,-0.45,-
 const bodyOK=i=>{const im=IMG['body_a'+i+'_sheet'];return im&&ANCH()['body_a'+i]&&im.width/6>=200;};// 새 체형(칸 256px) 시트만 사용
 function playerLayer(){let key=null;for(let i=P.a;i>=0;i--){if(bodyOK(i)){key='body_a'+i;break;}}if(!key&&!rigReady())return null;const[an,pr]=playerAnim();
  return{body:key,L:SHEETS.player,an,pr,face:P.face,h:rigReady()?44:62,flash:P.flash>0.5,boots:BCOL[P.b],
-  head:P.h>0?HELM(P.h):null,helmI:P.h>0?((eqItem('h')&&HELMV[eqItem('h').v]!=null)?HELMV[eqItem('h').v]:HELMT[P.h]):null,hairCol:'#6a4226',armor:(eqItem('a')&&(eqItem('a').v==='robe'||eqItem('a').v==='plate'))?eqItem('a').v:ARSET[P.a],armorTint:(eqItem('a')&&eqItem('a').v)?null:ARTINT[P.a],bootI:P.b,hair:P.hair??0,cape:P.cape??1,hand:{img:(eqItem('w')&&eqItem('w').v&&IMG['var_'+eqItem('w').v])?'var_'+eqItem('w').v:'wpn_'+P.w,proc:WCOL[P.w],glow:eqGlow(),bow:eqItem('w')&&eqItem('w').v==='bow'}};}
+  head:P.h>0?HELM(P.h):null,helmI:P.h>0?((eqItem('h')&&HELMV[eqItem('h').v]!=null)?HELMV[eqItem('h').v]:HELMT[P.h]):null,hairCol:'#6a4226',armor:(eqItem('a')&&(eqItem('a').v==='robe'||eqItem('a').v==='plate'))?eqItem('a').v:ARSET[P.a],armorTint:(eqItem('a')&&eqItem('a').v)?null:ARTINT[P.a],bootI:P.b,hair:(P.hair??0)%2,cape:P.cape??1,hand:{img:(eqItem('w')&&eqItem('w').v&&IMG['var_'+eqItem('w').v])?'var_'+eqItem('w').v:'wpn_'+P.w,proc:WCOL[P.w],glow:eqGlow(),bow:eqItem('w')&&eqItem('w').v==='bow'}};}
 function actorLayer(a){const y=a.look.layer;if(!y||!IMG[y.body+'_sheet']||!ANCH()[y.body])return null;if(((a.npc&&a.npc.role!=='hunter')||a.look.useSheet)&&IMG[a.look.img+'_sheet'])return null;let head,hand=null,cloth=y.cloth;
  if(a.npc&&a.npc.role==='hunter'){const n=a.npc;cloth=ACOL[n.a];head=n.h>0?HELM(n.h):HAT.hat_hood;hand={img:n.cls==='mage'?'var_staff':'wpn_'+n.w,proc:WCOL[n.w]};}
  else{head=y.hat?HAT[y.hat]:null;if(y.hand)hand={img:y.hand,proc:'#7a5a3a'};}
