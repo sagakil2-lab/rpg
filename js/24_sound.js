@@ -1,0 +1,59 @@
+'use strict';
+// =====================================================================
+//  사운드 — assets/sfx_*.mp3 / bgm_*.mp3 가 있으면 그 파일을, 없으면 합성음을 쓴다
+// =====================================================================
+const SND={on:true,bgmOn:true,ctx:null,buf:{},bgm:null,bgmKey:null,vol:(()=>{try{const v=localStorage.getItem('arpg_vol');return v!=null?+v/100:0.5;}catch(e){return 0.5;}})(),last:{}};
+const SFXK=['hit','crit','swing','hurt','pickup','coin','levelup','quest','questdone','chest','rift','warp','skill','fire','thunder','buy','die','click','boss','heal','talk','open','close','equip','error','arrow','magic','shield','revive','mondie','hatch','eggcrack','fuse','petdie','arena_win','arena_lose','gacha','gacha_rare','gacha_legend','recall','place','invade','wave','victory','defeat','promote','dia','b_summon','b_blink','b_charge','b_confuse','b_invuln','b_drain','b_clone','b_meteor','b_nova','b_pull','enrage'];
+const BGMK=['town','field','dungeon','raid','boss','title','story','home','arena','legend','gacha','night',...Array.from({length:10},(_,i)=>'town_t'+i)];
+try{const s=JSON.parse(localStorage.getItem('adv_snd')||'{}');if(s.on!=null)SND.on=s.on;if(s.bgmOn!=null)SND.bgmOn=s.bgmOn;}catch(e){}
+function actx(){if(!SND.ctx){try{SND.ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}return SND.ctx;}
+function loadSounds(){const src=k=>(window.EMBED_A&&EMBED_A[k])||('assets/'+k+'.mp3?v='+((window.ASSET_LIST||{}).v||''));
+ const EA=window.EMBED_A,AL=window.ASSET_LIST,ok=k=>EA?!!EA[k]:AL?AL.snd.includes(k):true;
+ SND.pend={};SFXK.forEach(k=>{if(!ok('sfx_'+k))return;let res;SND.pend[k]={p:new Promise(r=>res=r)};setTimeout(()=>{res();delete SND.pend[k];},15000);const done=()=>{res();delete SND.pend[k];};fetch(src('sfx_'+k)).then(r=>r.ok?r.arrayBuffer():null).then(b=>{if(!b){done();return;}const c=actx();if(c)c.decodeAudioData(b,d=>{SND.buf[k]=d;done();},done);else done();}).catch(done);});
+ BGMK.forEach(k=>{if(EA||AL)return;const a=new Audio();a.loop=true;a.preload='auto';a.oncanplaythrough=()=>{SND['bgm_'+k]=a;};a.onerror=()=>{};a.src=src('bgm_'+k);});}
+function sTone(c,t0,f,d,type,v,f2){const o=c.createOscillator(),g=c.createGain();o.type=type||'square';o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+d);g.gain.setValueAtTime(v*SND.vol,t0);g.gain.exponentialRampToValueAtTime(0.001,t0+d);o.connect(g).connect(c.destination);o.start(t0);o.stop(t0+d+0.02);}
+function sNoise(c,t0,d,v,hp){const n=c.createBuffer(1,Math.ceil(c.sampleRate*d),c.sampleRate),a=n.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=(Math.random()*2-1)*(1-i/a.length);const s=c.createBufferSource(),g=c.createGain(),f=c.createBiquadFilter();f.type='highpass';f.frequency.value=hp||800;s.buffer=n;g.gain.value=v*SND.vol;s.connect(f).connect(g).connect(c.destination);s.start(t0);}
+function sfxAt(k,x,y,ch){if(!P||Math.hypot(x-P.x,y-P.y)>520)return;if(ch!=null&&Math.random()>ch)return;sfx(k);}
+function sfx(k){if(!SND.on)return;const now=performance.now();if(now-(SND.last[k]||0)<(k==='hit'||k==='pickup'?45:80))return;SND.last[k]=now;const c=actx();if(!c)return;if(c.state==='suspended')c.resume();const t=c.currentTime;
+ if(!SND.buf[k]&&SND.pend&&SND.pend[k]){const w=SND.pend[k];if(!w.q){w.q=1;w.p.then(()=>{w.q=0;if(SND.buf[k]){SND.last[k]=0;sfx(k);}});}return;}
+ if(SND.buf[k]){const s=c.createBufferSource(),g=c.createGain();s.buffer=SND.buf[k];g.gain.value=SND.vol;s.connect(g).connect(c.destination);s.start();return;}
+ switch(k){case'swing':sNoise(c,t,0.12,0.25,2500);break;case'hit':sNoise(c,t,0.08,0.35,600);sTone(c,t,180,0.08,'square',0.12,90);break;case'crit':sNoise(c,t,0.12,0.45,500);sTone(c,t,520,0.15,'sawtooth',0.15,140);break;
+  case'hurt':sTone(c,t,220,0.18,'sawtooth',0.2,80);break;case'pickup':sTone(c,t,880,0.06,'square',0.08);sTone(c,t+0.05,1320,0.08,'square',0.08);break;case'coin':sTone(c,t,1200,0.05,'square',0.08);sTone(c,t+0.06,1800,0.12,'square',0.08);break;
+  case'levelup':[523,659,784,1047].forEach((f,i)=>sTone(c,t+i*0.09,f,0.25,'triangle',0.2));break;case'quest':[660,880].forEach((f,i)=>sTone(c,t+i*0.1,f,0.2,'triangle',0.18));break;
+  case'questdone':[523,659,784,659,1047].forEach((f,i)=>sTone(c,t+i*0.08,f,0.3,'triangle',0.2));break;case'chest':sTone(c,t,300,0.1,'square',0.12,600);[784,988,1175].forEach((f,i)=>sTone(c,t+0.12+i*0.07,f,0.25,'triangle',0.16));break;
+  case'rift':sTone(c,t,90,1.2,'sawtooth',0.25,40);sTone(c,t,140,1.2,'sine',0.2,60);break;case'warp':sTone(c,t,200,0.5,'sine',0.25,1200);break;case'skill':sTone(c,t,400,0.18,'triangle',0.18,900);sNoise(c,t,0.15,0.15,3000);break;
+  case'fire':sNoise(c,t,0.4,0.35,300);break;case'thunder':sNoise(c,t,0.5,0.5,150);sTone(c,t,60,0.4,'sawtooth',0.25,30);break;case'buy':sTone(c,t,988,0.08,'square',0.1);sTone(c,t+0.08,1319,0.15,'square',0.1);break;
+  case'die':[392,330,262,196].forEach((f,i)=>sTone(c,t+i*0.15,f,0.3,'triangle',0.2));break;case'boss':sTone(c,t,70,0.9,'sawtooth',0.3,55);break;case'heal':[660,880,1100].forEach((f,i)=>sTone(c,t+i*0.06,f,0.25,'sine',0.15));break;
+  case'talk':sTone(c,t,520+Math.random()*120,0.05,'square',0.05);sTone(c,t+0.06,600+Math.random()*120,0.05,'square',0.05);break;case'open':sTone(c,t,500,0.08,'triangle',0.1,800);break;case'close':sTone(c,t,700,0.08,'triangle',0.08,400);break;
+  case'equip':sNoise(c,t,0.08,0.2,1800);sTone(c,t+0.04,900,0.1,'square',0.08);break;case'error':sTone(c,t,160,0.18,'square',0.12);break;case'arrow':sNoise(c,t,0.1,0.18,4000);break;case'magic':sTone(c,t,600,0.25,'sine',0.15,1400);break;
+  case'shield':sTone(c,t,300,0.3,'triangle',0.18,500);sNoise(c,t,0.1,0.15,2500);break;case'revive':[523,784,1047,1568].forEach((f,i)=>sTone(c,t+i*0.08,f,0.35,'sine',0.14));break;case'mondie':sNoise(c,t,0.15,0.2,800);sTone(c,t,300,0.15,'triangle',0.1,120);break;
+  case'hatch':case'eggcrack':sNoise(c,t,0.06,0.3,2200);sNoise(c,t+0.1,0.06,0.3,2600);break;case'fuse':sTone(c,t,200,0.8,'sine',0.2,900);[784,1047].forEach((f,i)=>sTone(c,t+0.7+i*0.1,f,0.3,'triangle',0.16));break;
+  case'petdie':[523,392,262].forEach((f,i)=>sTone(c,t+i*0.12,f,0.25,'triangle',0.15));break;case'arena_win':case'victory':[523,659,784,1047,784,1047].forEach((f,i)=>sTone(c,t+i*0.1,f,0.3,'triangle',0.2));break;
+  case'arena_lose':case'defeat':[392,370,330,262].forEach((f,i)=>sTone(c,t+i*0.2,f,0.4,'triangle',0.18));break;case'gacha':sTone(c,t,400,0.4,'sine',0.18,1200);break;case'gacha_rare':[659,880,1175].forEach((f,i)=>sTone(c,t+i*0.09,f,0.4,'sine',0.18));break;
+  case'gacha_legend':[523,659,784,1047,1319,1568].forEach((f,i)=>sTone(c,t+i*0.08,f,0.5,'triangle',0.2));sNoise(c,t+0.5,0.6,0.12,5000);break;case'recall':sTone(c,t,300,1,'sine',0.2,1500);break;case'place':sNoise(c,t,0.08,0.3,500);break;
+  case'invade':case'wave':[220,220,220].forEach((f,i)=>sTone(c,t+i*0.25,f,0.18,'sawtooth',0.2));break;case'promote':[392,523,659,784,1047].forEach((f,i)=>sTone(c,t+i*0.1,f,0.4,'triangle',0.2));break;case'dia':sTone(c,t,1568,0.1,'sine',0.12);sTone(c,t+0.07,2093,0.18,'sine',0.12);break;
+  case'b_summon':sTone(c,t,110,0.9,'sawtooth',0.22,220);break;case'b_blink':sTone(c,t,1200,0.25,'sine',0.18,200);break;case'b_charge':sNoise(c,t,0.6,0.4,250);break;case'b_confuse':[600,500,700,450].forEach((f,i)=>sTone(c,t+i*0.08,f,0.15,'sine',0.14));break;
+  case'b_invuln':sTone(c,t,800,0.6,'triangle',0.15,1000);break;case'b_drain':sTone(c,t,900,0.8,'sine',0.15,150);break;case'b_clone':[400,500,600].forEach((f,i)=>sTone(c,t+i*0.05,f,0.3,'sawtooth',0.1));break;case'b_meteor':sTone(c,t,800,0.9,'sawtooth',0.15,80);sNoise(c,t+0.8,0.5,0.45,200);break;
+  case'b_nova':sNoise(c,t,0.7,0.35,400);sTone(c,t,90,0.6,'sawtooth',0.2,40);break;case'b_pull':sTone(c,t,100,0.9,'sine',0.25,40);break;case'enrage':sTone(c,t,80,0.8,'sawtooth',0.3,60);sNoise(c,t,0.4,0.3,300);break;default:sTone(c,t,700,0.05,'square',0.06);}}
+const hasBgm=k=>!!(SND['bgm_'+k]||(window.EMBED_A&&EMBED_A['bgm_'+k])||(window.ASSET_LIST&&ASSET_LIST.snd.includes('bgm_'+k)));
+function bgmFor(){const L=bgmFor0();for(const k of L)if(hasBgm(k))return k;return L[L.length-1];}
+function bgmFor0(){if(CS.on)return['story','title'];if(!CUR)return['title'];if(CUR.leg)return['legend','raid'];if(CUR.key==='HOME'||CUR.home)return['home','town'];if(CUR.kind==='town'&&!CUR.invaded){if($('#arc')&&$('#modal').classList.contains('on'))return['arena','town'];if(curBld&&curBld.type==='gacha'&&$('#modal')&&$('#modal').classList.contains('on'))return['gacha','town'];const h=G&&G.hour!=null?(Math.floor(G.hour)+8)%24:12;return['town_t'+CUR.ti,...(h>=21||h<5?['night']:[]),'town'];}return[bgmFor1()];}
+function bgmFor1(){if(!CUR||CS.on)return'title';if(CUR.raid)return'raid';if(CUR.kind==='town')return CUR.invaded?'raid':'town';if(ents&&ents.mons.some(m=>m.boss&&!m.dead&&Math.hypot(m.x-P.x,m.y-P.y)<320))return'boss';return CUR.kind==='dungeon'?'dungeon':'field';}
+const BG={k:null,src:null,gain:null,buf:{},loading:{}};
+function bgmWA(k){const c=actx();if(!c)return;if(BG.k===k)return;if(BG.src){try{BG.src.stop();}catch(e){}BG.src=null;}BG.k=k;if(!k)return;
+ const go=d=>{if(BG.k!==k)return;if(BG.src){try{BG.src.stop();}catch(e){}}if(!BG.gain){BG.gain=c.createGain();BG.gain.connect(c.destination);}BG.gain.gain.value=0.35*SND.vol*2;
+  const s=c.createBufferSource();s.buffer=d;s.loop=true;s.connect(BG.gain);s.start();BG.src=s;for(const x in BG.buf)if(x!==k)delete BG.buf[x];};
+ if(BG.buf[k]){go(BG.buf[k]);return;}if(BG.loading[k])return;BG.loading[k]=1;
+ if(!window.EMBED_A){fetch(ASSET_BASE()+'bgm_'+k+'.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{const fin=d=>{BG.loading[k]=0;BG.buf[k]=d;go(d);};c.decodeAudioData(b,fin,()=>{BG.loading[k]=0;});}).catch(()=>{BG.loading[k]=0;});return;}
+ try{const u=EMBED_A['bgm_'+k],bin=atob(u.slice(u.indexOf(',')+1)),arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+  const fin=d=>{BG.loading[k]=0;BG.buf[k]=d;go(d);},bad=()=>{BG.loading[k]=0;};const pr=c.decodeAudioData(arr.buffer,fin,bad);if(pr&&pr.catch)pr.catch(bad);}catch(e){BG.loading[k]=0;}}
+let SND_UL=0;function sndUnlock(){const c=actx();if(c&&c.state!=='running')c.resume().catch(()=>{});
+ if(!SND_UL&&c){SND_UL=1;try{const b=c.createBuffer(1,1,22050),s=c.createBufferSource();s.buffer=b;s.connect(c.destination);s.start(0);}catch(e){}
+  try{if(navigator.audioSession)navigator.audioSession.type='playback';}catch(e){}
+  try{const a=new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');a.loop=true;a.setAttribute('playsinline','');a.volume=0.01;a.play().catch(()=>{});SND.keep=a;}catch(e){}}if(SND.bgmOn&&SND.bgm&&SND.bgm.paused)SND.bgm.play().catch(()=>{});}
+['pointerdown','touchstart','touchend','keydown','click'].forEach(e=>addEventListener(e,sndUnlock,true));document.addEventListener('visibilitychange',()=>{if(!document.hidden){const c=actx();if(c&&c.state!=='running')c.resume().catch(()=>{});}});
+function bgmTick(){const k=SND.bgmOn?bgmFor():null;if(BG.gain)BG.gain.gain.value=0.35*SND.vol*2;
+ if(window.EMBED_A||window.ASSET_LIST){if(SND.bgm&&SND.bgm.pause){SND.bgm.pause();}SND.bgm=null;SND.bgmKey=k;bgmWA(k&&hasBgm(k)?k:null);return;}if(k===SND.bgmKey&&(SND.bgm||!SND['bgm_'+k]))return;const old=SND.bgm;SND.bgmKey=k;SND.bgm=k?SND['bgm_'+k]||null:null;if(old&&old!==SND.bgm){old.pause();}if(SND.bgm){SND.bgm.volume=0.35*SND.vol*2;SND.bgm.currentTime=0;SND.bgm.play().catch(()=>{SND.bgmKey=null;});}}
+function toggleSound(){if(SND.on&&SND.bgmOn){SND.bgmOn=false;}else if(SND.on){SND.on=false;}else{SND.on=true;SND.bgmOn=true;}if(!SND.bgmOn&&SND.bgm){SND.bgm.pause();SND.bgmKey=null;}
+ try{localStorage.setItem('adv_snd',JSON.stringify({on:SND.on,bgmOn:SND.bgmOn}));}catch(e){}toast(SND.on?(SND.bgmOn?'🔊 효과음 + 배경음악':'🔉 효과음만'):'🔇 소리 끔');const b=$('#bSnd');if(b)b.textContent=SND.on?(SND.bgmOn?'🔊':'🔉'):'🔇';}
+addEventListener('pointerdown',()=>{const c=actx();if(c&&c.state==='suspended')c.resume();},{once:false});
