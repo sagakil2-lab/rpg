@@ -3,7 +3,7 @@
 //  UI — 건물 / 가방 / 소식
 // =====================================================================
 let curBld=null;
-function openModal(h,wide){$('#modal').innerHTML=`<div class="card ${wide?'wide':''}">${h}</div>`;$('#modal').classList.add('on');paused=true;input.atk=false;}
+function openModal(h,wide){try{window.joyReset&&window.joyReset();}catch(e){}$('#modal').innerHTML=`<div class="card ${wide?'wide':''}">${h}</div>`;$('#modal').classList.add('on');paused=true;input.atk=false;}
 function closeModal(){$('#modal').classList.remove('on');paused=false;curBld=null;}
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
 function openBuilding(b){curBld=b;const ti=CUR.ti;if(b.type==='arena'){openMons('a');return;}
@@ -64,7 +64,7 @@ function equipPreviewLoop(){const cv=document.getElementById('eqcv');if(!cv)retu
  requestAnimationFrame(equipPreviewLoop);}
 const EQSEL={v:null};
 function eqSelShow(){const tip=$('#eqtip');if(!tip)return;const it=itemById(EQSEL.v);document.querySelectorAll('#eqinv .it').forEach(e=>e.classList.toggle('sel',+e.dataset.uid===EQSEL.v));if(!it){tip.innerHTML='<span class="mut">장비를 끌어서 장착 · 눌러서 선택</span>';return;}
- const eq=P.eq[it.k]===it.uid;tip.innerHTML=itemTip(it)+`<div style="margin-top:6px;display:flex;gap:6px">${eq?'<span class="mut">장착 중</span><button class="btn s" onclick="openEnhance(${it.uid})">⚒️ 강화 +${it.p||0}</button>':`<button class="btn s" onclick="openEnhance(${it.uid})">⚒️ 강화 +${it.p||0}</button><button class="btn s g" onclick="sellItem(${it.uid},()=>{EQSEL.v=null;openEquip();})">판매 ${fmt(itemVal(it))}G</button>`}</div>`;}
+ const eq=P.eq[it.k]===it.uid;tip.innerHTML=itemTip(it)+`<div style="margin-top:6px;display:flex;gap:6px">${eq?`<span class="mut" style="align-self:center">장착 중</span><button class="btn s" onclick="openEnhance(${it.uid})">⚒️ 강화 +${it.p||0}</button>`:`<button class="btn s" onclick="openEnhance(${it.uid})">⚒️ 강화 +${it.p||0}</button><button class="btn s g" onclick="sellItem(${it.uid},()=>{EQSEL.v=null;openEquip();})">판매 ${fmt(itemVal(it))}G</button>`}</div>`;}
 function setEq(k,uid){sfx('equip');const it=uid!=null?itemById(uid):null;if(it&&LVREQ[it.t]>P.lv){toast(`Lv${LVREQ[it.t]} 이상 장착 가능`);return;}if(it&&inStash(uid)){const S=stashOf();S.items=S.items.filter(x=>x!==it);P.items.push(it);}
  if(uid==null&&(k==='w'||k==='a')){toast('무기와 갑옷은 비워 둘 수 없다');return;}P.eq[k]=uid;syncEq();P.hp=Math.min(P.hp,maxHp());toast(it?`${it.name} 장착`:`${GEARK[k][1]} 해제`);openEquip();}
 function itemTip(it){if(!it)return'<span class="mut">비어 있음</span>';return`<b style="color:${RAR[it.r].c}">[${RAR[it.r].n}] ${it.name}</b> <span class="mut">${GEARK[it.k][1]} · 요구 Lv${LVREQ[it.t]}</span><br>${itemStats(it)||'<span class="mut">기본 능력치 없음</span>'}<br>${cmpStats(it)}`;}
@@ -89,11 +89,14 @@ function openEquip(){const slotPos={h:[8,26],r:[8,128],w:[8,230],a:[228,26],n:[2
  const slots=Object.entries(slotPos).map(([k,[x,y]])=>{const it=eqItem(k);return`<div class="es" data-slot="${k}" style="left:${x}px;top:${y}px;${it?`border-color:${RAR[it.r].c};border-style:solid`:''}"><span class="sl2">${GEARK[k][0]} ${GEARK[k][1]}</span><canvas width="56" height="56" data-uid="${it?it.uid:''}" data-k="${k}"></canvas></div>`;}).join('');
  const order={w:0,a:1,h:2,b:3,r:4,n:5};const items=P.items.filter(it=>P.eq[it.k]!==it.uid).sort((x,y)=>order[x.k]-order[y.k]||y.t-x.t||y.r-x.r);
  const inv=items.map(it=>`<div class="it ${P.eq[it.k]===it.uid?'eq':''}" data-uid="${it.uid}" style="border-color:${RAR[it.r].c}" data-r="${it.r}"><span class="t">${GEARK[it.k][0]}</span><canvas width="56" height="56" data-uid="${it.uid}"></canvas>${it.el!=='none'?`<span style="position:absolute;right:3px;top:1px;font-size:10px">${ELEM[it.el].ic}</span>`:''}${P.eq[it.k]===it.uid?'<span class="e">E</span>':''}</div>`).join('');
- openModal(`<h2>🛡️ 장비</h2><p class="d">끌어서 장착 · 칸 밖으로 끌면 해제 · 눌러서 선택</p>
+ const EB=EQT.v;let bagGrid='';if(EB!=='e'){const cell=(k,inner,badge,extra)=>`<div class="bi" data-k="${k}" ${extra||''} onclick="bagInfo('${k}')">${inner}${badge!=null?`<span class="e">${badge}</span>`:''}</div>`;
+  if(EB==='m')bagGrid=Object.keys(P.bag).map(Number).sort((a,b)=>MATS[a].tier-MATS[b].tier||a-b).map(id=>cell('m:'+id,icv({t:'mat',id},40),P.bag[id],`style="border-color:${MATS[id].rare?'#c77dff':'#4a3c2c'}"`)).join('');
+  else bagGrid=['p1','p2','p3'].map(p=>cell('p:'+p,icv({t:'pot',id:p},38),P.pot[p])).join('')+cell('s:1',IMG.itm_scroll?`<img src="${IMG.itm_scroll.src}" style="width:36px">`:'<span style="font-size:26px">📜</span>',P.scroll||0)+Object.entries(P.eggs).filter(([,v])=>v>0).map(([k,v])=>{const[gi,mi]=k.split('_').map(Number);return cell('g:'+k,icv({t:'egg',gi,mi},40),v);}).join('');}
+ const tabs=`<div class="eqtabs">${[['e',`장비 ${items.length}`],['m',`재료 ${pBag()}/${P.cap}`],['o','소모품·알']].map(([k,n])=>`<button class="tab ${EB===k?'on':''}" onclick="EQT.v='${k}';openEquip()">${n}</button>`).join('')}</div>`;
+ openModal(`<h2>🛡️ 장비 · 가방 <span class="gold" style="float:right;font-size:13px">💰 ${fmt(P.gold)}G</span></h2><p class="d">끌어서 장착 · 칸 밖으로 끌면 해제 · 눌러서 선택</p>
  <div class="eqw"><div><div class="eqc" id="eqc"><canvas id="eqcv" width="200" height="290"></canvas>${slots}</div>${st}</div>
- <div class="inv"><h3>보유 장비 (${items.length}) <span class="mut" style="font-size:11px">${RAR.map(r=>`<span style="color:${r.c}">■</span>${r.n}`).join(' ')}</span></h3><div class="ig" id="eqinv">${inv}</div><div class="ttip" id="eqtip"></div>
- <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap"><button class="btn s g" onclick="sellJunk(0)">일반 등급 판매</button><button class="btn s g" onclick="sellJunk(1)">고급 이하 판매</button></div></div></div>
- <button class="btn w g" onclick="openBag()">가방으로</button>`,true);
+ <div class="inv">${tabs}${EB==='e'?`<h3>보유 장비 (${items.length}) <span class="mut" style="font-size:11px">${RAR.map(r=>`<span style="color:${r.c}">■</span>${r.n}`).join(' ')}</span></h3><div class="ig" id="eqinv">${inv}</div><div class="ttip" id="eqtip"></div>`:`<div class="bgrid" id="bgr">${bagGrid||'<span class="mut" style="grid-column:1/-1">비어 있다</span>'}</div><div class="skd" id="binfo" style="margin-top:6px;--bc:#c8962e"><span class="mut">아이콘을 누르면 정보가 보인다</span></div>`}
+ <div class="eqb" style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${EB==='e'?'<button class="btn s g" onclick="sellJunk(0)">일반 등급 판매</button><button class="btn s g" onclick="sellJunk(1)">고급 이하 판매</button>':''}<button class="btn s g" style="margin-left:auto" onclick="closeModal()">닫기</button></div></div></div>`,true);{const cd=$('#modal .card');if(cd)cd.classList.add('eqm');paintIcons($('#modal'));if(matchMedia('(pointer:coarse)').matches){const ec=$('#eqc');if(ec){const z=clamp((innerHeight*0.96-112)/320,0.45,0.8);ec.style.zoom=z;}}}
  document.querySelectorAll('#modal canvas[data-uid]').forEach(cv=>{const u=cv.dataset.uid;if(u)gearIcon(cv,itemById(+u));else{const c=cv.getContext('2d');c.font='26px sans-serif';c.textAlign='center';c.textBaseline='middle';c.globalAlpha=0.3;c.fillText(GEARK[cv.dataset.k][0],28,28);}});
  equipPreviewLoop();bindEquipDrag();eqSelShow();}
 function itemVal(it){const base=[8,30,80,170,320,550][Math.min(5,it.t)]*(it.k==='w'?1.1:it.k==='a'?1:it.k==='r'||it.k==='n'?1.4:0.7);return Math.max(3,Math.round(base*(1+it.r*0.6)*(1+(it.p||0)*0.5)*(it.v?1.3:1)));}

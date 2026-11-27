@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>모험가의 시장 — 액션 RPG 프로토타입</title>
-<link rel="stylesheet" href="css/style.css?v=202611271720">
+<link rel="stylesheet" href="css/style.css?v=202611271752">
 </head>
 <body>
 <canvas id="cv"></canvas>
-<div id="hud"><div class="hrow"><div class="hpw"><canvas id="hpor" width="112" height="112"></canvas></div><div class="hbody"><div class="r"><b id="hLv">Lv1</b><span id="hLoc"></span></div>
+<div id="hud" onclick="openStats()" title="눌러서 능력치 분배"><div class="hrow"><div class="hpw"><canvas id="hpor" width="112" height="112"></canvas></div><div class="hbody"><div class="r"><b id="hLv">Lv1</b><span id="hLoc"></span></div>
  <div class="bar hp"><i id="hHp"></i><span id="hHpT"></span></div><div class="bar mp"><i id="hMp"></i><span id="hMpT"></span></div><div class="bar xp"><i id="hXp"></i></div></div></div>
  <div class="r" style="margin:5px 0 0"><span id="hTime" class="mut"></span><span id="hPot"></span></div><div id="goal"></div></div>
 <div id="petbar"></div><div id="qtrack" onclick="openQuests()"></div><button id="qtog" onclick="toggleQT()">◀</button><div id="hud2"><div class="g" id="hGold"></div><button id="bMenu" onclick="openMenu()">☰<span class="bdg" id="bMenuB" style="display:none"></span></button><div class="bt"><button id="bSk" onclick="openSkills()">🌟</button><button onclick="openBag()">🎒</button><button onclick="openStats()" title="능력치">📊</button><button onclick="openEvents()" title="출석·미션·시즌 패스">📅</button><button onclick="openMons()" title="몬스터 (P)">🐾</button><button onclick="openDungeon()" title="나만의 던전 (U)">🏰</button><button onclick="openNews()">📜</button><button onclick="openSettings()" title="설정">⚙️</button><button onclick="openShop('charge')" title="다이아 상점 (Y)">💎</button><button onclick="openWorld()" title="월드맵 (M)">🗺️</button><button onclick="openQuests()" title="퀘스트 (O)">📖</button><button id="bSnd" onclick="toggleSound()" title="소리 (N)">🔊</button><button onclick="openHelp()">❔</button></div><canvas id="mini" width="120" height="100"></canvas></div>
@@ -16,41 +16,41 @@
 <div id="sbar"></div><div id="pad"><div id="knob"><i></i></div></div>
 <div id="acts"><button id="bA">공격</button><button id="bP">물약</button><button id="bE">대화</button></div>
 
-<script src="assets/anchors.js?v=202611271720"></script>
-<script src="assets/asset_list.js?v=202611271720"></script>
-<script src="js/00_util.js?v=202611271720"></script>
-<script src="js/01_data_world.js?v=202611271720"></script>
-<script src="js/02_npc_economy.js?v=202611271720"></script>
-<script src="js/03_my_dungeon.js?v=202611271720"></script>
-<script src="js/04_monsters_pets.js?v=202611271720"></script>
-<script src="js/05_home.js?v=202611271720"></script>
-<script src="js/06_assets_loader.js?v=202611271720"></script>
-<script src="js/07_map_gen.js?v=202611271720"></script>
-<script src="js/08_draw_helpers.js?v=202611271720"></script>
-<script src="js/09_game_state.js?v=202611271720"></script>
-<script src="js/10_monster_ai.js?v=202611271720"></script>
-<script src="js/11_items.js?v=202611271720"></script>
-<script src="js/12_player.js?v=202611271720"></script>
-<script src="js/13_skills.js?v=202611271720"></script>
-<script src="js/14_char_layer.js?v=202611271720"></script>
-<script src="js/15_char_rig.js?v=202611271720"></script>
-<script src="js/16_npc_actor.js?v=202611271720"></script>
-<script src="js/17_npc_karma_combat.js?v=202611271720"></script>
-<script src="js/18_effects.js?v=202611271720"></script>
-<script src="js/19_main_loop.js?v=202611271720"></script>
-<script src="js/20_ui.js?v=202611271720"></script>
-<script src="js/21_legend.js?v=202611271720"></script>
-<script src="js/22_rift.js?v=202611271720"></script>
-<script src="js/23_worldmap.js?v=202611271720"></script>
-<script src="js/24_sound.js?v=202611271720"></script>
-<script src="js/25_story_quest.js?v=202611271720"></script>
-<script src="js/26_eggs.js?v=202611271720"></script>
-<script src="js/27_shop_gacha.js?v=202611271720"></script>
-<script src="js/27b_events_stats.js?v=202611271720"></script>
-<script src="js/28_title.js?v=202611271720"></script>
-<script src="js/29_cutscene.js?v=202611271720"></script>
-<script src="js/30_save.js?v=202611271720"></script>
-<script src="js/31_input.js?v=202611271720"></script>
-<script src="js/32_boot.js?v=202611271720"></script>
+<script src="assets/anchors.js?v=202611271752"></script>
+<script src="assets/asset_list.js?v=202611271752"></script>
+<script src="js/00_util.js?v=202611271752"></script>
+<script src="js/01_data_world.js?v=202611271752"></script>
+<script src="js/02_npc_economy.js?v=202611271752"></script>
+<script src="js/03_my_dungeon.js?v=202611271752"></script>
+<script src="js/04_monsters_pets.js?v=202611271752"></script>
+<script src="js/05_home.js?v=202611271752"></script>
+<script src="js/06_assets_loader.js?v=202611271752"></script>
+<script src="js/07_map_gen.js?v=202611271752"></script>
+<script src="js/08_draw_helpers.js?v=202611271752"></script>
+<script src="js/09_game_state.js?v=202611271752"></script>
+<script src="js/10_monster_ai.js?v=202611271752"></script>
+<script src="js/11_items.js?v=202611271752"></script>
+<script src="js/12_player.js?v=202611271752"></script>
+<script src="js/13_skills.js?v=202611271752"></script>
+<script src="js/14_char_layer.js?v=202611271752"></script>
+<script src="js/15_char_rig.js?v=202611271752"></script>
+<script src="js/16_npc_actor.js?v=202611271752"></script>
+<script src="js/17_npc_karma_combat.js?v=202611271752"></script>
+<script src="js/18_effects.js?v=202611271752"></script>
+<script src="js/19_main_loop.js?v=202611271752"></script>
+<script src="js/20_ui.js?v=202611271752"></script>
+<script src="js/21_legend.js?v=202611271752"></script>
+<script src="js/22_rift.js?v=202611271752"></script>
+<script src="js/23_worldmap.js?v=202611271752"></script>
+<script src="js/24_sound.js?v=202611271752"></script>
+<script src="js/25_story_quest.js?v=202611271752"></script>
+<script src="js/26_eggs.js?v=202611271752"></script>
+<script src="js/27_shop_gacha.js?v=202611271752"></script>
+<script src="js/27b_events_stats.js?v=202611271752"></script>
+<script src="js/28_title.js?v=202611271752"></script>
+<script src="js/29_cutscene.js?v=202611271752"></script>
+<script src="js/30_save.js?v=202611271752"></script>
+<script src="js/31_input.js?v=202611271752"></script>
+<script src="js/32_boot.js?v=202611271752"></script>
 </body>
 </html>
